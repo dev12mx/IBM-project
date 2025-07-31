@@ -1,0 +1,197 @@
+import streamlit as st
+from datetime import date
+from jinja2 import Template
+
+
+RESUME_TEMPLATES = {
+    "Enhanced Modern": """\
+{{ name }}
+{{ role }}
+{{ email }} · {{ phone }} · {{ linkedin }}
+
+PROFESSIONAL SUMMARY
+{{ summary }}
+
+KEY ACHIEVEMENTS & QUALITIES
+- {{ achievement_1 }}
+- {{ achievement_2 }}
+- {{ achievement_3 }}
+
+PROFESSIONAL EXPERIENCE
+{% for job in experience %}
+{{ job.role }} | {{ job.company }} ({{ job.start }} – {{ job.end }})
+{{ job.desc }}
+  - Major contributions: 
+    • {{ job.highlights }}
+{% endfor %}
+
+EDUCATION
+{% for edu in education %}
+{{ edu.degree }} in {{ edu.major }}, {{ edu.school }} ({{ edu.grad }}){% if edu.gpa %}, GPA: {{ edu.gpa }}{% endif %}
+  - Coursework: {{ edu.courses }}
+{% endfor %}
+
+TECHNICAL & SOFT SKILLS
+{{ skills }}
+
+CERTIFICATIONS & TRAINING
+{{ certifications }}
+""",
+}
+
+COVER_TEMPLATES = {
+    "Standard": """\
+{{ today }}
+
+Dear {{ manager | default("Hiring Manager") }},
+
+I am writing to express my enthusiasm for the {{ role }} position at {{ company }}.
+Having built a strong foundation in {{ expertise }}, along with {{ experience_years }} years of hands-on experience, I have developed a keen ability to {{ trait_1 }}, while consistently delivering {{ trait_2 }}.
+
+Notable career achievements include:
+{% for b in bullets -%}
+• {{ b }}
+{% endfor %}
+
+I am eager to bring my skills and energy to {{ company }}. Thank you for your time and consideration.
+
+Sincerely,
+{{ name }}
+"""
+}
+
+def render(template_dict, template_name, context):
+    return Template(template_dict[template_name], trim_blocks=True, lstrip_blocks=True).render(**context)
+
+st.set_page_config(page_title="Standout Resume & Cover Letter Generator")
+st.title("🌟 Resume & Cover Letter Generator (Enhanced Output)")
+
+tabs = st.tabs(["Generate Résumé", "Generate Cover Letter"])
+
+
+with tabs[0]:
+    st.header("🔎 Enter Your Résumé Details")
+
+    name = st.text_input("Full Name", placeholder="Enter Your Name")
+    role = st.text_input("Professional Title", placeholder="e.g. Sr. Data Analyst")
+    email = st.text_input("Email Address", placeholder="e.g. xyz.lee@email.com")
+    phone = st.text_input("Phone Number", placeholder="e.g. +91 78545557")
+    linkedin = st.text_input("LinkedIn", placeholder="e.g. linkedin url")
+
+    summary = st.text_area("Professional Summary", height=110, 
+        placeholder="Example: Accomplished Data Analyst with 5+ years of experience providing actionable insights for Fortune 500 companies. Adept at transforming complex data into strategic solutions that drive results. Recognized for outstanding communication and collaboration across cross-functional teams.")
+
+    achievement_1 = st.text_input("Key Achievement 1", 
+        placeholder="Reduced reporting turnaround by 30% via automation.")
+    achievement_2 = st.text_input("Key Achievement 2", 
+        placeholder="Awarded 'Employee of the Year' for project leadership.")
+    achievement_3 = st.text_input("Key Achievement 3", 
+        placeholder="Mentored and onboarded 10+ new analysts.")
+
+    st.subheader("Professional Experience (up to 2 jobs)")
+    experience = []
+    for i in range(1, 3):
+        with st.expander(f"Job #{i}", expanded=(i == 1)):
+            job_role = st.text_input(f"Role #{i}", key=f"role_{i}")
+            company = st.text_input(f"Company #{i}", key=f"company_{i}")
+            start = st.text_input(f"Start Date #{i}", key=f"start_{i}")
+            end = st.text_input(f"End Date #{i}", key=f"end_{i}")
+            desc = st.text_area(f"Description #{i}", key=f"desc_{i}",
+                placeholder="Key responsibilities and achievements with real impact, e.g. 'Spearheaded migration of legacy datasets to cloud-based infrastructure, optimizing data retrieval and reducing costs.'")
+            highlights = st.text_area(f"Major Highlights #{i}", key=f"hi_{i}",
+                placeholder="Example: Delivered high-visibility dashboards adopted department-wide.")
+            if job_role and company:
+                experience.append({
+                    "role": job_role,
+                    "company": company,
+                    "start": start,
+                    "end": end,
+                    "desc": desc,
+                    "highlights": highlights
+                })
+
+    st.subheader("Education (up to 2 entries)")
+    education = []
+    for i in range(1, 3):
+        with st.expander(f"Education #{i}", expanded=(i == 1)):
+            degree = st.text_input(f"Degree #{i}", key=f"degree_{i}")
+            major = st.text_input(f"Major #{i}", key=f"major_{i}")
+            school = st.text_input(f"School #{i}", key=f"school_{i}")
+            grad = st.text_input(f"Graduation Year #{i}", key=f"grad_{i}")
+            gpa = st.text_input(f"GPA #{i} (optional)", key=f"gpa_{i}")
+            courses = st.text_input(f"Relevant Courses #{i}", key=f"courses_{i}", placeholder="E.g. Machine Learning, Data Visualization")
+            if degree and school and major:
+                education.append({
+                    "degree": degree,
+                    "major": major,
+                    "school": school,
+                    "grad": grad,
+                    "gpa": gpa,
+                    "courses": courses
+                })
+
+    skills = st.text_area("Technical & Soft Skills", 
+        placeholder="E.g. Python, SQL, Power BI, Analytical Thinking, Communication, Team Leadership")
+
+    certifications = st.text_area("Certifications & Training", 
+        placeholder="E.g. Microsoft Certified: Data Analyst Associate, Scrum Master, Advanced Tableau")
+
+    if st.button("Generate Résumé"):
+        ctx = {
+            "name": name,
+            "role": role,
+            "email": email,
+            "phone": phone,
+            "linkedin": linkedin,
+            "summary": summary,
+            "achievement_1": achievement_1,
+            "achievement_2": achievement_2,
+            "achievement_3": achievement_3,
+            "experience": experience,
+            "education": education,
+            "skills": skills,
+            "certifications": certifications
+        }
+        resume_output = render(RESUME_TEMPLATES, "Enhanced Modern", ctx)
+        st.subheader("Résumé Preview")
+        st.code(resume_output, language="markdown")
+
+        st.download_button("Download as TXT", resume_output, file_name="resume.txt", mime="text/plain")
+        st.download_button("Download as Markdown", resume_output, file_name="resume.md", mime="text/markdown")
+
+with tabs[1]:
+    st.header("✉️ Enter Cover Letter Details")
+    name_c = st.text_input("Your Name", key="cover_name", placeholder="Name")
+    role_c = st.text_input("Position Title", key="cover_role", placeholder="e.g. Sr. Data Analyst")
+    company_c = st.text_input("Company", key="cover_company", placeholder="e.g. Data Insights Inc.")
+    manager_c = st.text_input("Hiring Manager (optional)", key="cover_manager", placeholder="e.g. jjp")
+    expertise = st.text_input("Main Area of Expertise", key="cover_expertise", placeholder="e.g. Analytics, Business Intelligence")
+    experience_years = st.number_input("Years of Experience", min_value=0, max_value=50, value=5, key="cover_years")
+    trait_1 = st.text_input("Workplace Strength 1", key="cover_trait1", placeholder="e.g. solving complex data puzzles")
+    trait_2 = st.text_input("Workplace Strength 2", key="cover_trait2", placeholder="e.g. actionable insights")
+    bullets_input = st.text_area("Key Achievements (one per line)", key="cover_bullets",
+        placeholder="E.g.\nImplemented reporting system adopted by leadership\nMentored junior team members", height=100)
+    bullets = [b.strip() for b in bullets_input.splitlines() if b.strip()]
+
+    template_letter = st.selectbox("Cover Letter Template", options=list(COVER_TEMPLATES.keys()), key="cover_template")
+
+    if st.button("Generate Cover Letter"):
+        ctx_c = {
+            "today": date.today().strftime("%B %d, %Y"),
+            "name": name_c,
+            "role": role_c,
+            "company": company_c,
+            "manager": manager_c,
+            "expertise": expertise,
+            "experience_years": experience_years,
+            "trait_1": trait_1,
+            "trait_2": trait_2,
+            "bullets": bullets,
+        }
+
+        output_cover = render(COVER_TEMPLATES, template_letter, ctx_c)
+        st.subheader("Cover Letter Preview")
+        st.code(output_cover, language="markdown")
+
+        st.download_button("Download as TXT", output_cover, file_name="cover_letter.txt", mime="text/plain")
+        st.download_button("Download as Markdown", output_cover, file_name="cover_letter.md", mime="text/markdown")
