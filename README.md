@@ -1,1 +1,1 @@
-# IBM-project
+# AI Resume & Cover Letter Generator
